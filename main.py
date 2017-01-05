@@ -18,6 +18,7 @@ ens_dir = [os.path.expanduser('~/Dropbox/Current/simulations/rs_pla_tap_all'),
 data = []
 for ens in ens_dir:
       for root, dirs, files in os.walk( ens ):
+            # only try directories with output folder
             if 'out' in dirs:
                   try:
                         sim = simulation( root ).process()

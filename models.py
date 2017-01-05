@@ -13,7 +13,6 @@ class simulation( object ):
     def __init__(self, dir_name):
         
         # intialize data structure to store simulation data
-        # note: this should correspond to schema, or this will represent nosql document
         self.data = {
           # from simulation configuration file
           'name': None,
@@ -38,11 +37,11 @@ class simulation( object ):
           'mw': None,
         }
         
-        # populated from parsing the 
+        # populated from parsing the parameter file
         self.params = {}
 
         # hardcoded
-        self.config_file = 'meta.py'
+        self.__config_file = 'meta.py'
 
         # simulation directory
         self.dir = os.path.expanduser( dir_name )
@@ -61,8 +60,8 @@ class simulation( object ):
         # load slip, psv, and trup
         nx = self.params['shape']['su1'][0]
         nz = self.params['shape']['su1'][1]
-        
         dtype = self.params['dtype']
+
         su1 = np.fromfile(os.path.join(self.dir, 'out/su1'), dtype=dtype).reshape([nz,nx])
         su2 = np.fromfile(os.path.join(self.dir, 'out/su2'), dtype=dtype).reshape([nz,nx])
         self.slip = np.sqrt( su1**2 + su2**2 )
@@ -75,6 +74,8 @@ class simulation( object ):
         nt = self.params['shape']['tsm'][2] # some models didn't write out all timesteps
 
         self.tsm = np.fromfile( os.path.join(self.dir, 'out/tsm'), dtype=dtype )
+
+        # sometimes the simulations finish early
         try:
             self.tsm = self.tsm.reshape([nt,nz,nx]) 
         except ValueError:
@@ -94,7 +95,7 @@ class simulation( object ):
 
         """ 
         # read meta.py file
-        meta = utils.parse( os.path.join( self.dir, 'meta.py' ) )
+        meta = utils.parse( os.path.join( self.dir, self.__config_file ) )
 
         # update simulation object with all parameters
         self.params.update( meta )
