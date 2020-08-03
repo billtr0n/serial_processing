@@ -1,40 +1,43 @@
 # python-packages
 import os, traceback
+import sys
 
 # site-packages
-import matplotlib.pyplot as plt 
 import pandas as pd
 
 # local imports
 import tasks
 from models import simulation
 
+# read file containing list of directories to process
+fpath_dirs_to_process = sys.argv[1]
+if os.path.exists(fpath_dirs_to_process):
+    with open(fpath_dirs_to_process, 'r') as f:
+        dirs_to_process = [line.strip() for line in f.readlines()]
+else:
+    print("Error: list of simulation files not found")
+    sys.exit(-1)
 
-ens_dir = [os.path.expanduser('~/Dropbox/Current/simulations/rs_pla_tap_all'),
-           os.path.expanduser('~/Dropbox/Current/simulations/5mpa_a005_mu0_0.225_eq_co_1mpa'),
-           os.path.expanduser('~/Dropbox/Current/simulations/5mpa_a007_mu0_0.225_eq_co_1mpa'),
-           os.path.expanduser('~/Dropbox/Current/simulations/sw_pla_tap_a007_s1_32_1d_all') ]
-
+# process directories
 data = []
-for ens in ens_dir:
-      for root, dirs, files in os.walk( ens ):
-            # only try directories with output folder
-            if 'out' in dirs:
-                  try:
-                        sim = simulation( root ).process()
-                        data.append( sim.data )
-                  except:
-                        print 'error processing %s. skipping.' % root
-
-
+for sim_dir in dirs_to_process:
+    # only try directories with output folder
+    subfolders = [ f.path for f in os.scandir(sim_dir) if f.is_dir() ]
+    out_dir = os.path.join(sim_dir, 'out')
+    if out_dir in subfolders:
+          try:
+                sim = simulation( sim_dir ).process()
+                data.append( sim.data )
+          except:
+                print(f"error processing {sim_dir}. skipping.")
+                traceback.print_exc()
+    else:
+        print(subfolders)
+        # print(f"Warning: no output directory found in {sim_dir}. skipping.")
 
 # put data into dataframe
 d = pd.DataFrame( data )
 
 # save to file
-d.to_csv( os.path.expanduser( '~/Dropbox/Current/simulations/data_all_2.csv' ) )
-
-
-
-
+d.to_csv(os.path.expanduser('~/data_all_3.csv'))
 

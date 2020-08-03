@@ -15,10 +15,11 @@ def prune( d, pattern=None, types=None ):
     if types is None:
         types = type( re ), type( re.sub )
     grep = re.compile( pattern )
+    d2 = d.copy()
     for k in d.keys():
         if grep.search( k ) or type( d[k] ) in types:
-            del( d[k] )
-    return d
+            del( d2[k] )
+    return d2
 
 
 def parse( fd, prune_pattern=None, prune_types=None ):
@@ -26,17 +27,17 @@ def parse( fd, prune_pattern=None, prune_types=None ):
     @author: geoff ely (modified by william savran)
     parse vars in python file into new dict. ignore types and modules
     through prune types.
-	
+    
     inputs
-	fd (string or file) : full_path or file
+    fd (string or file) : full_path or file
 
     returns
-	parameters (dict) : containing parameter and its value. 
+    parameters (dict) : containing parameter and its value. 
     """
     d = {}
-    if type( fd ) is not file:
-	fd = open( os.path.expanduser( fd ) )
-    exec fd in d
+    if isinstance(fd, str):
+        fd = open( os.path.expanduser( fd ) )
+    exec(fd.read(), d)
     prune( d, prune_pattern, prune_types )
     return d
 
@@ -64,14 +65,30 @@ def poly_area(x,y):
     """
     return 0.5*np.absolute(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
 
+def poly_area_bbox(x,y):
+    """ compute area based on bounding box around set of polygons. 
+
+    inputs
+        x (ndarray) : x coordinates of polygon
+        y (ndarray) : y coordinates of polygon
+
+    returns
+        area (float) : area of polygon in units of (x,y)
+    """
+    minx = np.min(x)
+    maxx = np.max(x)
+    miny = np.min(y)
+    maxy = np.max(y)
+    bbox_area = (maxx-minx)*(maxy-miny)
+    return bbox_area
     
 def extract_from_string( string, prefix ):
     """ extract numeric value from string given prefix 
     
     inputs
         string : string to be searched
-	prefix : substring(s), if list will append using '|'.  if both are in string
-	         will return from the first occurance.
+    prefix : substring(s), if list will append using '|'.  if both are in string
+             will return from the first occurance.
 
     returns
         val : numeric value after prefix
@@ -159,7 +176,7 @@ def get_field_mask( sim, field, hypo_tol=4000, field_tol=0.001 ):
 #     return grid
 
 
-	
-	
-	    
-	   
+    
+    
+        
+       

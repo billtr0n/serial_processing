@@ -21,6 +21,8 @@ def get_fault_extent( sim, tol=20.0 ):
             length (float)      : fault length (km)
     """
     trigger = False
+    minx=0
+    maxx=sim.nx*sim.dx
     for i in range(sim.nx):
         dslice = sim.trup[:,i]
         avg = np.median(dslice)
@@ -59,6 +61,56 @@ def get_area( sim, tol=20.0 ):
     xz = np.array( xz ) 
     return utils.poly_area(xz[:,0], xz[:,1])
 
+def get_area_bbox( sim, tol=1e-5, top_start = 4000 ):
+    """ calculates area based on bounding box around the ruptured surface. 
+
+	inputs 
+            sim : simulation object 
+            tol : tolerance for contour
+
+	returns 
+            area (float)      : simulation area (km^2)
+    """
+    # define fault coordinates
+    ex = sim.nx*sim.dx*1e-3
+    ez = sim.nz*sim.dx*1e-3
+    x = np.arange(0, ex, sim.dx*1e-3)
+    z = np.arange(0, ez, sim.dx*1e-3)
+    istart = int(np.rint(top_start / sim.dx))
+
+    minx = 0 
+    maxx = ex
+    trigger = False
+    for i in range(sim.nx):
+        dslice = sim.slip[istart:,i]
+        min_slip = np.max(dslice)
+        if not trigger and min_slip > 0.25:
+            trigger = True
+            minx = i*sim.dx*1e-3
+        elif trigger and min_slip <= 0.25:
+            maxx = i*sim.dx*1e-3
+            trigger = False
+            break
+    length = maxx-minx
+
+    minz=0
+    maxz=ez
+    trigger=False
+    for j in range(sim.nz):
+        hslice = sim.slip[j,:]
+        min_slip = np.max(hslice)
+        if not trigger and min_slip > 0.25:
+            trigger = True
+            minz = j*sim.dx*1e-3
+        elif trigger and min_slip <= 0.25:
+            maxz = j*sim.dx*1e-3
+            trigger = False
+            break
+    width = maxz-minz
+    print(f"length: {length}, width: {width}")
+    return length*width
+
+
 def get_mw( sim, dtype='<f4' ):
     """ reading mw from file 
     
@@ -68,7 +120,10 @@ def get_mw( sim, dtype='<f4' ):
     returns
         m0 (float) : seismic moment in Nm
     """
-    mw = np.fromfile(os.path.join(sim.dir, 'stats/mw'), dtype=dtype)
+    fp = os.path.join(sim.dir, 'stats/mw')
+    if not os.path.exists(fp):
+        fp = os.path.join(sim.dir, 'stats.old/mw')
+    mw = np.fromfile(fp, dtype=dtype)
     return mw[-1]
 
 def compute_stress_drop( sim, tol=0.001 ): 

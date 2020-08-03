@@ -52,35 +52,35 @@ class simulation( object ):
         # add some parameters to top level class for easy access
         self.dt = self.params['dt']
         self.dx = self.params['dx'][0]
-        self.nx = self.params['nn'][0]
-        self.nz = self.params['nn'][1]
+        self.nx = int(self.params['nn'][0])
+        self.nz = int(self.params['nn'][1])
         self.ihypo = self.params['ihypo']
         self.name = self.params['name']
 
         # load slip, psv, and trup
-        nx = self.params['shape']['su1'][0]
-        nz = self.params['shape']['su1'][1]
-        dtype = self.params['dtype']
+        nx = int(self.params['shape']['su1'][0])
+        nz = int(self.params['shape']['su1'][1])
+        self.dtype = self.params['dtype']
 
-        su1 = np.fromfile(os.path.join(self.dir, 'out/su1'), dtype=dtype).reshape([nz,nx])
-        su2 = np.fromfile(os.path.join(self.dir, 'out/su2'), dtype=dtype).reshape([nz,nx])
+        su1 = np.fromfile(os.path.join(self.dir, 'out/su1'), dtype=self.dtype).reshape([nz,nx])
+        su2 = np.fromfile(os.path.join(self.dir, 'out/su2'), dtype=self.dtype).reshape([nz,nx])
         self.slip = np.sqrt( su1**2 + su2**2 )
-        self.trup = np.fromfile(os.path.join(self.dir, 'out/trup'), dtype=dtype).reshape([nz,nx])
-        self.psv = np.fromfile(os.path.join(self.dir, 'out/psv'), dtype=dtype).reshape([nz,nx])
+        self.trup = np.fromfile(os.path.join(self.dir, 'out/trup'), dtype=self.dtype).reshape([nz,nx])
+        self.psv = np.fromfile(os.path.join(self.dir, 'out/psv'), dtype=self.dtype).reshape([nz,nx])
 
         # load shear stress
-        nx = self.params['shape']['tsm'][0]
-        nz = self.params['shape']['tsm'][1]
-        nt = self.params['shape']['tsm'][2] # some models didn't write out all timesteps
+        nx = int(self.params['shape']['tsm'][0])
+        nz = int(self.params['shape']['tsm'][1])
+        nt = int(self.params['shape']['tsm'][2]) # some models didn't write out all timesteps
 
-        self.tsm = np.fromfile( os.path.join(self.dir, 'out/tsm'), dtype=dtype )
+        self.tsm = np.fromfile( os.path.join(self.dir, 'out/tsm'), dtype=self.dtype )
 
         # sometimes the simulations finish early
         try:
             self.tsm = self.tsm.reshape([nt,nz,nx]) 
         except ValueError:
             n = len( self.tsm )
-            sdim = n / ( nx * nz )
+            sdim = int(n / ( nx * nz ))
             self.tsm = self.tsm.reshape([sdim,nz,nx])
 
     def parse_simulation_details( self ):
@@ -173,7 +173,7 @@ class simulation( object ):
         # decimate mask if necessary
         ratio = 1
         if nskipx_field != nskipx_mask:
-            ratio = nskipx_field / nskipx_mask
+            ratio = int(nskipx_field / nskipx_mask)
 
         # combine masks using logical or
         mask = np.ma.mask_or(mask1, mask2)[::ratio, ::ratio]    
@@ -189,11 +189,11 @@ class simulation( object ):
 
     def process( self ):
         """ process the simulation from folders in tasks. make sure to update data as we go along. """
-        
-        print 'processing sim: %s' % self.name
+        print(f'processing sim: {self.name}')
         
         self.data['rupture_length'] = tasks.get_fault_extent( self )
         self.data['rupture_area'] = tasks.get_area( self )
+        self.data['rupture_area_bbox'] = tasks.get_area_bbox( self ) 
         self.data['avg_stress_drop'] = tasks.compute_stress_drop( self )
 
         avg, avg_surf, mx, mx_surf = tasks.rupture_field_stats( self , 'slip' )
@@ -208,7 +208,7 @@ class simulation( object ):
         self.data['max_psv'] = mx
         self.data['max_surf_psv'] = mx_surf
 
-        self.data['mw'] = tasks.get_mw( self, self.params['dtype'] )
+        self.data['mw'] = tasks.get_mw( self, dtype=self.dtype )
         self.data['moment'] = utils.mw_to_m0( self.data['mw'] )
 
         return self
